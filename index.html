@@ -772,6 +772,20 @@ body.tema-texas .hdr,body.desk.tema-texas #side{background:var(--verde)}
   </div>
 </div>
 
+<div class="overlay" id="overlay-envpw">
+  <div class="modal">
+    <h3>Enviar ao estoque</h3>
+    <p>Digite a senha de autorização para continuar.</p>
+    <div class="fld"><label>Senha</label>
+      <input type="password" id="envpw-input" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter') envPwOk()"></div>
+    <p id="envpw-erro" style="color:#e05252;font-size:12px;margin-top:6px;display:none">Senha incorreta.</p>
+    <div class="modal-btns" style="margin-top:16px">
+      <button class="btn-out" onclick="fecharEnvPw()">Cancelar</button>
+      <button class="btn-go" onclick="envPwOk()">Continuar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ENVIAR AO ESTOQUE (app de transferências) -->
 <div class="overlay" id="overlay-envest">
   <div class="modal">
@@ -781,7 +795,6 @@ body.tema-texas .hdr,body.desk.tema-texas #side{background:var(--verde)}
       <select id="envest-sel" onchange="envPrever()"><option value="">Selecione</option><option>MASHA ADM</option><option>MASHA PIER</option><option>LINHA</option><option>LINHA TEXAS</option><option>BAR</option><option>CALI CAFÉ</option></select></div>
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:10px 0"><input type="checkbox" id="envest-zerar" onchange="envPrever()" style="margin-top:3px"> <span>Zerar os produtos do estoque que não foram contados nesta contagem</span></label>
     <div id="envest-prev" style="font-size:13px;background:rgba(0,0,0,.05);border-radius:8px;padding:10px;min-height:40px">Selecione o estoque.</div>
-    <div class="fld" style="margin-top:10px"><label>Senha de autorização</label><input type="password" id="envest-senha" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter') envConfirmar()"></div>
     <p style="font-size:11px;opacity:.7;margin-top:8px">Os saldos substituem os atuais. Antes de gravar é feito um backup automático do estoque.</p>
     <div class="modal-btns" style="margin-top:12px">
       <button class="btn-out" onclick="fecharEnvEst()">Cancelar</button>
@@ -4982,7 +4995,7 @@ async function loadAdmin(){
             ${isEnviado?'✅ Enviado':'⏳ Rascunho'}</span>
           ${actionBtn}
           <button class="btn-sm" onclick="exportEntry(window._adminKeys[${i}])">Excel</button>
-          ${isEnviado?`<button class="btn-sm" onclick="abrirEnvioEstoque(${i})" title="Enviar os saldos ao app de transferências">📦 Estoque</button>`:''}
+          ${isEnviado?`<button class="btn-sm" onclick="pedirSenhaEnvio(${i})" title="Enviar os saldos ao app de transferências">📦 Estoque</button>`:''}
           ${allfoodBtn}
           <button class="btn-del" onclick="confirmDelete(window._adminKeys[${i}])" title="Excluir">🗑️</button>
         </div>
@@ -5007,11 +5020,24 @@ async function abrirEnvioEstoque(idx){
   window._envEst={key,e,lista};
   document.getElementById('envest-desc').textContent=e.setor+' · '+ptDate(e.data)+' · '+lista.length+' produtos com quantidade';
   document.getElementById('envest-sel').value=EST_MAP_INV[e.setor]||'';
-  document.getElementById('envest-zerar').checked=false; document.getElementById('envest-senha').value='';
+  document.getElementById('envest-zerar').checked=false;
   document.getElementById('overlay-envest').classList.add('on');
   envPrever();
 }
-function fecharEnvEst(){ document.getElementById('overlay-envest').classList.remove('on'); }
+function fecharEnvEst(){ document.getElementById('overlay-envest').classList.remove('on'); window._envAuth=false; }
+function pedirSenhaEnvio(idx){
+  window._envIdx=idx; window._envAuth=false;
+  const i=document.getElementById('envpw-input'); i.value='';
+  document.getElementById('envpw-erro').style.display='none';
+  document.getElementById('overlay-envpw').classList.add('on');
+  setTimeout(()=>i.focus(),100);
+}
+function fecharEnvPw(){ document.getElementById('overlay-envpw').classList.remove('on'); }
+function envPwOk(){
+  const i=document.getElementById('envpw-input');
+  if(i.value.trim()!=='2202'){ document.getElementById('envpw-erro').style.display='block'; i.value=''; i.focus(); return; }
+  window._envAuth=true; fecharEnvPw(); abrirEnvioEstoque(window._envIdx);
+}
 async function envCalc(){
   const st=window._envEst; const est=document.getElementById('envest-sel').value; if(!st||!est) return null;
   const zerar=document.getElementById('envest-zerar').checked;
@@ -5035,8 +5061,7 @@ async function envPrever(){
   box.innerHTML='<b>'+r.est+'</b><br>• '+r.atual+' produtos terão o saldo substituído<br>• '+r.novos+' produtos novos serão cadastrados'+(r.zerar?'<br>• '+r.zer+' produtos não contados serão zerados':'');
 }
 async function envConfirmar(){
-  const sIn=document.getElementById('envest-senha');
-  if(sIn.value.trim()!=='2202'){ showToast('❌ Senha incorreta',3000); sIn.value=''; sIn.focus(); return; }
+  if(!window._envAuth){ showToast('❌ Senha de autorização necessária',3000); fecharEnvEst(); return; }
   const btn=document.getElementById('envest-ok'); btn.disabled=true;
   try{
     const r=await envCalc(); if(!r){ showToast('Selecione o estoque'); btn.disabled=false; return; }
