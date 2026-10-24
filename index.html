@@ -372,6 +372,36 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<style>
+/* ===== MODO COMPUTADOR (menu lateral) ===== */
+.modeseg{display:inline-flex;border:1px solid rgba(255,255,255,.35);border-radius:20px;overflow:hidden;background:rgba(255,255,255,.1);flex-shrink:0}
+.modeseg button{border:none;background:none;padding:3px 11px;font-size:15px;cursor:pointer;line-height:1.4;opacity:.55;font-family:inherit;color:#fff}
+.modeseg button.on{background:rgba(255,255,255,.28);opacity:1}
+#side{display:none}
+body.desk #side{display:flex;position:fixed;left:0;top:0;bottom:0;width:248px;background:var(--verde);color:#fff;flex-direction:column;padding:20px 12px;gap:4px;z-index:150;overflow-y:auto}
+body.desk.tema-texas #side{background:#7A1F1F}
+body.desk.no-side #side{display:none}
+body.desk:not(.no-side) .screen{padding-left:248px;box-sizing:border-box}
+body.desk:not(.no-side) .hdr,body.desk:not(.no-side) .hdr-session,body.desk:not(.no-side) .offline-banner{margin-left:248px}
+body.desk:not(.no-side) .hdr-logo{display:none}
+body.desk:not(.no-side) .action-bar{left:248px}
+body.desk .inv-body{max-width:1180px;margin-left:auto;margin-right:auto;padding-left:24px;padding-right:24px}
+body.desk .admin-wrap{max-width:1000px}
+body.desk .cat-sec.open .cat-body{display:grid;grid-template-columns:1fr 1fr}
+body.desk .cat-sec.open .cat-body>.p-row{border-right:1px solid #f0ede8}
+.side-brand{display:flex;align-items:center;gap:10px;padding:2px 8px 16px;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:10px}
+.side-brand b{font-size:15px}
+.side-brand small{display:block;opacity:.6;font-size:12px}
+.side-brand .sico{width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.18)}
+.side-brand .sico img{width:100%;height:100%;object-fit:cover;display:block}
+.side-it{display:flex;align-items:center;gap:10px;background:none;border:none;color:rgba(255,255,255,.82);padding:11px 12px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;text-align:left;width:100%;font-family:inherit}
+.side-it:hover{background:rgba(255,255,255,.12)}
+.side-it.on{background:rgba(255,255,255,.22);color:#fff;font-weight:600}
+.side-ic{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.side-sep{height:1px;background:rgba(255,255,255,.15);margin:8px 4px}
+.side-foot{margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,.15);display:flex;flex-direction:column;gap:4px}
+.side-unit{font-size:12px;opacity:.65;padding:0 12px 6px}
+</style>
 </head>
 <body>
 
@@ -386,6 +416,7 @@ if('serviceWorker' in navigator){
     </div>
   </div>
     <div class="hdr-right">
+    <div class="modeseg" id="modebar"><button id="mode-m" onclick="setModoTela('mobile')" title="Modo celular">📱</button><button id="mode-d" onclick="setModoTela('desktop')" title="Modo computador">🖥️</button></div>
     <button class="btn-nova gone" id="btn-nova" onclick="novaContagem()">+ Nova</button>
     <button class="btn-admin gone" id="btn-admin" onclick="toggleAdmin()">ADMIN</button>
   </div>
@@ -5942,6 +5973,40 @@ function showToast(msg,dur=3200){
   el.textContent=msg;el.classList.add('on');
   _tt=setTimeout(()=>el.classList.remove('on'),dur);
 }
+</script>
+<div id="side"></div>
+<script>
+/* ===== MODO COMPUTADOR ===== */
+var SIDE_ITENS=[['__nova','➕','Nova contagem'],['__cont','📋','Contagens finalizadas'],['__ger','🛠️','Gerencial']];
+var TELAS_SEM_MENU=['screen-unidade','screen-login'];
+function modoTelaAtual(){var m=null;try{m=localStorage.getItem('modoTela');}catch(e){} if(m==='desktop'||m==='mobile')return m; return window.innerWidth>=1000?'desktop':'mobile';}
+function aplicarModoTela(){var m=modoTelaAtual();document.body.classList.toggle('desk',m==='desktop');var a=document.getElementById('mode-m'),b=document.getElementById('mode-d');if(a)a.classList.toggle('on',m==='mobile');if(b)b.classList.toggle('on',m==='desktop');}
+function setModoTela(m){try{localStorage.setItem('modoTela',m);}catch(e){} aplicarModoTela(); setTimeout(function(){window.dispatchEvent(new Event('resize'));},60);}
+function sideGo(id){
+  if(id==='__nova') novaContagem();
+  else if(id==='__cont') confirmContagens();
+  else if(id==='__ger') confirmGerencial();
+  else if(id==='__unid') showScreen('unidade');
+}
+function renderSide(){
+  var el=document.getElementById('side'); if(!el) return;
+  el.innerHTML='<div class="side-brand"><div class="sico"><img src="msh-logo.png" alt=""></div><div><b>Masha Group</b><small>Inventário</small></div></div>'+
+    SIDE_ITENS.map(function(it){return '<button class="side-it" data-s="'+it[0]+'" onclick="sideGo(\''+it[0]+'\')"><span class="side-ic">'+it[1]+'</span> '+it[2]+'</button>';}).join('')+
+    '<div class="side-foot"><div class="side-unit">'+getUnidadeAtual()+'</div><button class="side-it" onclick="sideGo(\'__unid\')"><span class="side-ic">🚪</span> Trocar unidade</button></div>';
+}
+function atualizarLayoutTela(id){
+  document.body.classList.toggle('no-side',TELAS_SEM_MENU.indexOf(id)>=0);
+  renderSide();
+  var act=({'screen-inventory':'__nova','screen-admin':'__cont','screen-lixeira':'__cont','screen-gerencial':'__ger'})[id]||id;
+  document.querySelectorAll('#side .side-it').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-s')===act);});
+}
+(function(){
+  aplicarModoTela();
+  function atual(){var a=document.querySelector('.screen.active');atualizarLayoutTela(a?a.id:'');}
+  var mo=new MutationObserver(atual);
+  document.querySelectorAll('.screen').forEach(function(s){mo.observe(s,{attributes:true,attributeFilter:['class']});});
+  atual();
+})();
 </script>
 </body>
 </html>
