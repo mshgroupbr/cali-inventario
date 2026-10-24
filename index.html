@@ -768,6 +768,7 @@ body.desk .cat-sec.open .cat-body>.p-row{border-right:1px solid #f0ede8}
       <select id="envest-sel" onchange="envPrever()"><option value="">Selecione</option><option>MASHA ADM</option><option>MASHA PIER</option><option>LINHA</option><option>LINHA TEXAS</option><option>BAR</option><option>CALI CAFÉ</option></select></div>
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:10px 0"><input type="checkbox" id="envest-zerar" onchange="envPrever()" style="margin-top:3px"> <span>Zerar os produtos do estoque que não foram contados nesta contagem</span></label>
     <div id="envest-prev" style="font-size:13px;background:rgba(0,0,0,.05);border-radius:8px;padding:10px;min-height:40px">Selecione o estoque.</div>
+    <div class="fld" style="margin-top:10px"><label>Senha de autorização</label><input type="password" id="envest-senha" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter') envConfirmar()"></div>
     <p style="font-size:11px;opacity:.7;margin-top:8px">Os saldos substituem os atuais. Antes de gravar é feito um backup automático do estoque.</p>
     <div class="modal-btns" style="margin-top:12px">
       <button class="btn-out" onclick="fecharEnvEst()">Cancelar</button>
@@ -4993,7 +4994,7 @@ async function abrirEnvioEstoque(idx){
   window._envEst={key,e,lista};
   document.getElementById('envest-desc').textContent=e.setor+' · '+ptDate(e.data)+' · '+lista.length+' produtos com quantidade';
   document.getElementById('envest-sel').value=EST_MAP_INV[e.setor]||'';
-  document.getElementById('envest-zerar').checked=false;
+  document.getElementById('envest-zerar').checked=false; document.getElementById('envest-senha').value='';
   document.getElementById('overlay-envest').classList.add('on');
   envPrever();
 }
@@ -5021,6 +5022,8 @@ async function envPrever(){
   box.innerHTML='<b>'+r.est+'</b><br>• '+r.atual+' produtos terão o saldo substituído<br>• '+r.novos+' produtos novos serão cadastrados'+(r.zerar?'<br>• '+r.zer+' produtos não contados serão zerados':'');
 }
 async function envConfirmar(){
+  const sIn=document.getElementById('envest-senha');
+  if(sIn.value.trim()!=='2202'){ showToast('❌ Senha incorreta',3000); sIn.value=''; sIn.focus(); return; }
   const btn=document.getElementById('envest-ok'); btn.disabled=true;
   try{
     const r=await envCalc(); if(!r){ showToast('Selecione o estoque'); btn.disabled=false; return; }
