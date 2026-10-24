@@ -728,6 +728,23 @@ if('serviceWorker' in navigator){
   </div>
 </div>
 
+<!-- MODAL ENVIAR AO ESTOQUE (app de transferências) -->
+<div class="overlay" id="overlay-envest">
+  <div class="modal">
+    <h3>Enviar ao estoque</h3>
+    <p id="envest-desc" style="font-size:13px"></p>
+    <div class="fld"><label>Estoque de destino (app de transferências)</label>
+      <select id="envest-sel" onchange="envPrever()"><option value="">Selecione</option><option>MASHA ADM</option><option>MASHA PIER</option><option>LINHA</option><option>LINHA TEXAS</option><option>BAR</option><option>CALI CAFÉ</option></select></div>
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:10px 0"><input type="checkbox" id="envest-zerar" onchange="envPrever()" style="margin-top:3px"> <span>Zerar os produtos do estoque que não foram contados nesta contagem</span></label>
+    <div id="envest-prev" style="font-size:13px;background:rgba(0,0,0,.05);border-radius:8px;padding:10px;min-height:40px">Selecione o estoque.</div>
+    <p style="font-size:11px;opacity:.7;margin-top:8px">Os saldos substituem os atuais. Antes de gravar é feito um backup automático do estoque.</p>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn-out" onclick="fecharEnvEst()">Cancelar</button>
+      <button class="btn-go" id="envest-ok" onclick="envConfirmar()">Enviar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL -->
 <div class="overlay" id="overlay">
   <div class="modal">
@@ -4913,18 +4930,77 @@ async function loadAdmin(){
           <strong>${e.setor}</strong>
           <span>${e.colaborador} · ${ptDate(e.data)}</span>
           <span>${Object.keys(e.itens||{}).length} itens contados</span>
+          ${e.enviadoEstoque?`<span style="color:#0f6e56;font-weight:600">📦 Enviado ao estoque ${e.enviadoEstoque.estoque} em ${new Date(e.enviadoEstoque.em).toLocaleString('pt-BR')}</span>`:''}
         </div>
         <div class="cnt-actions">
           <span class="sta ${isEnviado?'env':'and'}">
             ${isEnviado?'✅ Enviado':'⏳ Rascunho'}</span>
           ${actionBtn}
           <button class="btn-sm" onclick="exportEntry(window._adminKeys[${i}])">Excel</button>
+          ${isEnviado?`<button class="btn-sm" onclick="abrirEnvioEstoque(${i})" title="Enviar os saldos ao app de transferências">📦 Estoque</button>`:''}
           ${allfoodBtn}
           <button class="btn-del" onclick="confirmDelete(window._adminKeys[${i}])" title="Excluir">🗑️</button>
         </div>
       </div>`;
     }).join('');
   }catch{con.innerHTML='<p style="color:var(--muted);text-align:center;padding:32px">❌ Erro ao carregar.</p>';}
+}
+
+const EST_MAP_INV={'MASHA ADM':'MASHA ADM','MASHA PIER':'MASHA PIER','LINHA COZINHA & BAR':'LINHA','CALI CAFÉ':'CALI CAFÉ','TEXAS LINHA COZINHA & BAR':'LINHA TEXAS','TEXAS BAR':'BAR'};
+async function abrirEnvioEstoque(idx){
+  const key=window._adminKeys[idx]; if(!key) return;
+  showToast('⏳ Preparando...',4000);
+  const snap=await db.ref('/inventario/'+key).get(); if(!snap.exists()){showToast('❌ Contagem não encontrada.');return;}
+  const e=snap.val(); await overridesPromise;
+  const itens=e.itens||{}; const lista=[];
+  PRODUCTS.forEach(p=>{
+    if(conversaoInfo(p.cod)) return;
+    if(p.cat==='ENXOVAL' && e.setor!=='ENXOVAL') return;
+    const q=parseFloat(itens[p.cod]);
+    if(q>0) lista.push({c:Number(p.cod),n:p.desc,u:p.unit,q:Math.round(q*1000)/1000});
+  });
+  window._envEst={key,e,lista};
+  document.getElementById('envest-desc').textContent=e.setor+' · '+ptDate(e.data)+' · '+lista.length+' produtos com quantidade';
+  document.getElementById('envest-sel').value=EST_MAP_INV[e.setor]||'';
+  document.getElementById('envest-zerar').checked=false;
+  document.getElementById('overlay-envest').classList.add('on');
+  envPrever();
+}
+function fecharEnvEst(){ document.getElementById('overlay-envest').classList.remove('on'); }
+async function envCalc(){
+  const st=window._envEst; const est=document.getElementById('envest-sel').value; if(!st||!est) return null;
+  const zerar=document.getElementById('envest-zerar').checked;
+  const sn=await db.ref('/estoques/'+est).get(); const cur=sn.exists()?sn.val():{};
+  const byC={}; Object.keys(cur).forEach(k=>{const n=cur[k]; if(n&&Number(n.c)>0&&byC[Number(n.c)]===undefined) byC[Number(n.c)]=k;});
+  const up={}; let novos=0,atual=0,zer=0; const tocadas=new Set();
+  st.lista.forEach(it=>{
+    const k=byC[it.c]!==undefined?byC[it.c]:String(it.c); tocadas.add(k);
+    const base='estoques/'+est+'/'+k;
+    if(cur[k]){ atual++; up[base+'/saldo']=it.q; up[base+'/u']=it.u; if(!(Number(cur[k].c)>0)) up[base+'/c']=it.c; }
+    else { novos++; up[base]={c:it.c,n:it.n,u:it.u,saldo:it.q}; }
+  });
+  if(zerar){ Object.keys(cur).forEach(k=>{const n=cur[k]; if(n&&n.n&&!tocadas.has(k)&&(parseFloat(n.saldo)||0)!==0&&n.ativo!==false){ up['estoques/'+est+'/'+k+'/saldo']=0; zer++; }}); }
+  return {est,cur,up,novos,atual,zer,zerar};
+}
+async function envPrever(){
+  const box=document.getElementById('envest-prev'); const est=document.getElementById('envest-sel').value;
+  if(!est){ box.textContent='Selecione o estoque.'; return; }
+  box.textContent='Calculando...';
+  const r=await envCalc(); if(!r) return;
+  box.innerHTML='<b>'+r.est+'</b><br>• '+r.atual+' produtos terão o saldo substituído<br>• '+r.novos+' produtos novos serão cadastrados'+(r.zerar?'<br>• '+r.zer+' produtos não contados serão zerados':'');
+}
+async function envConfirmar(){
+  const btn=document.getElementById('envest-ok'); btn.disabled=true;
+  try{
+    const r=await envCalc(); if(!r){ showToast('Selecione o estoque'); btn.disabled=false; return; }
+    const st=window._envEst; const agora=Date.now();
+    await db.ref('/backup_estoques/'+st.e.data+'_antes_inventario_'+r.est.replace(/[^A-Z0-9]/gi,'_')+'_'+agora).set(r.cur||{});
+    r.up['inventario/'+st.key+'/enviadoEstoque']={em:agora,estoque:r.est,itens:st.lista.length};
+    await db.ref().update(r.up);
+    await db.ref('/estoques_envios_log').push({em:agora,estoque:r.est,contagem:st.key,atualizados:r.atual,novos:r.novos,zerados:r.zer});
+    fecharEnvEst(); showToast('✅ Estoque '+r.est+' atualizado ('+(r.atual+r.novos)+' produtos)',5000); loadAdmin();
+  }catch(err){ showToast('❌ Erro ao enviar ao estoque',5000); }
+  btn.disabled=false;
 }
 
 async function openEntry(idx){
