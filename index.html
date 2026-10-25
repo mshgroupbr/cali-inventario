@@ -3989,6 +3989,11 @@ async function loadOverrides(){
         }
       });
     }
+    const exSnap = await db.ref('/produtos_excluidos').get();
+    if(exSnap.exists()){
+      const exc = exSnap.val();
+      for(let i=PRODUCTS.length-1;i>=0;i--){ if(exc[PRODUCTS[i].cod]) PRODUCTS.splice(i,1); }
+    }
   }catch(e){ console.warn('Overrides de produtos:', e.message); }
 }
 const overridesPromise = loadOverrides();
@@ -5571,6 +5576,7 @@ function gerRow(p){
         <input type="text" class="ger-inp" id="gconvdest${p.cod}" list="dl-produtos-ger" value="${escAttr(conv.destino||'')}" placeholder="código do produto limpo">
       </div>
       <button class="btn-ger-save" onclick="salvarProdutoGer('${p.cod}')">💾 Salvar</button>
+      <button class="btn-ger-save" style="background:#c0392b;border-color:#c0392b;color:#fff" onclick="excluirProdutoGer('${p.cod}')">🗑️ Excluir</button>
     </div>`;
 }
 function toggleConvGer(cod){
@@ -5606,6 +5612,23 @@ function filterProdsGer(q){
   });
 }
 
+async function excluirProdutoGer(cod){
+  const idx = PRODUCTS.findIndex(x=>x.cod===cod);
+  if(idx<0){ showToast('Produto não encontrado'); return; }
+  const p = PRODUCTS[idx];
+  if(!confirm('EXCLUIR "'+p.desc+'" ('+cod+')?\n\nO produto some do app (contagens, gerencial e exportações). As contagens já feitas continuam no histórico.\n\nPara apenas tirar de uso sem apagar, desmarque "Ativo" e salve.')) return;
+  const s = prompt('Senha para excluir o produto:');
+  if(s===null) return;
+  if((s||'').trim()!=='2202'){ showToast('Senha incorreta ❌'); return; }
+  try{
+    const meta = ALLFOOD_META[cod]||['',''];
+    await db.ref('/produtos_excluidos/'+cod).set({cod:cod, desc:p.desc||'', unit:p.unit||'', cat:p.cat||'', classe:meta[0]||'', subclasse:meta[1]||'', excluidoEm:Date.now()});
+    PRODUCTS.splice(idx,1);
+    PRODUTOS_INATIVOS.delete(cod);
+    const row = document.getElementById('grow'+cod); if(row) row.remove();
+    showToast('🗑️ Produto excluído');
+  }catch(e){ showToast('⚠️ Não foi possível excluir: '+e.message); }
+}
 async function salvarProdutoGer(cod, opts){
   opts=opts||{};
   const silent=!!opts.silent;
