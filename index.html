@@ -5414,8 +5414,8 @@ function closeContModal(){
   document.getElementById('overlay-cont').classList.remove('on');
 }
 async function doContAccess(){
-  const pw=document.getElementById('cont-senha').value;
-  if(pw!=='000813'){
+  const pw=document.getElementById('cont-senha').value.trim();
+  if(pw!=='000813' && pw!=='2202'){
     document.getElementById('cont-erro').style.display='block';
     document.getElementById('cont-senha').value='';return;
   }
@@ -5445,8 +5445,8 @@ function closeGerModal(){
   document.getElementById('overlay-ger').classList.remove('on');
 }
 async function doGerAccess(){
-  const pw=document.getElementById('ger-senha').value;
-  if(pw!=='000813'){
+  const pw=document.getElementById('ger-senha').value.trim();
+  if(pw!=='000813' && pw!=='2202'){
     document.getElementById('ger-erro').style.display='block';
     document.getElementById('ger-senha').value='';return;
   }
