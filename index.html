@@ -601,6 +601,7 @@ body.tema-texas .hdr,body.desk.tema-texas #side{background:var(--verde)}
     <button class="btn-ger-novo" onclick="abrirNovoProduto()">➕ Novo Produto</button>
     <button class="btn-ger-novo" onclick="abrirColaboradores()">👥 Colaboradores</button>
     <button class="btn-ger-novo" onclick="abrirAcessosHoje()">🕐 Acessos de hoje</button>
+    <button class="btn-ger-novo" onclick="abrirRenomear()">✏️ Renomear insumos / unidades</button>
     <button class="btn-ger-novo" onclick="exportarInsumosExcel()">📥 Exportar insumos (Excel)</button>
   </div>
   <div class="inv-body" id="ger-inv-body">
@@ -5613,6 +5614,86 @@ function filterProdsGer(q){
   });
 }
 
+/* ===== Renomear insumos / unidades (Inventário + Requisição) ===== */
+let RN_ITENS=[], RN_BACKUP=false;
+function rnNorm(c){return String(c==null?'':c).trim();}
+async function abrirRenomear(){
+  const s=prompt('Senha gerencial:'); if(s===null) return;
+  if((s||'').trim()!=='2202'){ showToast('Senha incorreta ❌'); return; }
+  showToast('⏳ Carregando insumos...');
+  try{
+    const snap=await db.ref('/estoques').get(); const est=snap.exists()?snap.val():{};
+    const map=new Map();
+    PRODUCTS.forEach(p=>{const c=rnNorm(p.cod); map.set(c,{cod:c,nome:p.desc||'',unit:p.unit||'',cat:p.cat||'',inv:true,reqs:[]});});
+    Object.keys(est).forEach(e=>Object.keys(est[e]||{}).forEach(k=>{
+      const x=est[e][k]; if(!x||!x.n) return; const c=rnNorm(x.c);
+      if(!c||c==='0') return;
+      let it=map.get(c);
+      if(!it){it={cod:c,nome:x.n,unit:x.u||'',cat:'(só Requisição)',inv:false,reqs:[]};map.set(c,it);}
+      it.reqs.push({est:e,key:k,n:x.n,u:x.u||''});
+    }));
+    RN_ITENS=Array.from(map.values()).sort((a,b)=>String(a.cat).localeCompare(String(b.cat),'pt-BR')||a.nome.localeCompare(b.nome,'pt-BR'));
+    RN_BACKUP=false;
+    let ov=document.getElementById('rn-ov');
+    if(!ov){
+      ov=document.createElement('div'); ov.id='rn-ov';
+      ov.style.cssText='position:fixed;inset:0;z-index:9999;background:#0f1115;color:#eee;display:flex;flex-direction:column;font-family:inherit';
+      ov.innerHTML='<div style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#1a1d24;border-bottom:1px solid #333"><b style="font-size:16px">✏️ Renomear insumos / unidades</b><input id="rn-busca" placeholder="🔍 Buscar nome ou código..." style="flex:1;min-width:180px;padding:9px;border-radius:8px;border:1px solid #444;background:#0f1115;color:#eee" oninput="rnRender()"><select id="rn-filtro" onchange="rnRender()" style="padding:9px;border-radius:8px;border:1px solid #444;background:#0f1115;color:#eee"><option value="">Todos</option><option value="div">Só divergentes</option><option value="req">Só da Requisição</option></select><button onclick="rnSalvarTodos()" style="padding:9px 12px;border-radius:8px;border:0;background:#2e7d32;color:#fff;font-weight:700">💾 Salvar alterados</button><button onclick="document.getElementById(\'rn-ov\').style.display=\'none\'" style="padding:9px 12px;border-radius:8px;border:0;background:#444;color:#fff">✕ Fechar</button></div><div id="rn-info" style="padding:6px 12px;font-size:12px;color:#aaa"></div><div id="rn-lista" style="flex:1;overflow:auto;padding:0 8px 80px"></div>';
+      document.body.appendChild(ov);
+    }
+    ov.style.display='flex'; document.getElementById('rn-busca').value=''; document.getElementById('rn-filtro').value='';
+    rnRender();
+  }catch(e){ showToast('⚠️ Erro: '+e.message); }
+}
+function rnDiv(it){ return it.inv && it.reqs.some(r=>r.n.toUpperCase()!==it.nome.toUpperCase()||r.u.toUpperCase()!==it.unit.toUpperCase()); }
+function rnRender(){
+  const q=(document.getElementById('rn-busca').value||'').toLowerCase().trim();
+  const f=document.getElementById('rn-filtro').value;
+  let l=RN_ITENS.filter(it=>(!q||it.nome.toLowerCase().includes(q)||it.cod.toLowerCase().includes(q)||it.reqs.some(r=>r.n.toLowerCase().includes(q)))&&(f!=='div'||rnDiv(it))&&(f!=='req'||it.reqs.length));
+  const tot=l.length; l=l.slice(0,150);
+  document.getElementById('rn-info').textContent=tot+' insumos'+(tot>150?' (mostrando 150 — use a busca)':'')+' · edite o nome/unidade e toque em Salvar. A mudança vale no Inventário e na Requisição.';
+  document.getElementById('rn-lista').innerHTML=l.map(it=>{
+    const ests=Array.from(new Set(it.reqs.map(r=>r.est))).join(', ');
+    const rq=it.reqs.length?('Req: '+Array.from(new Set(it.reqs.map(r=>r.n+' ('+r.u+')'))).join(' / ')+' · '+ests):'Só no Inventário';
+    return '<div class="rn-row" data-cod="'+escAttr(it.cod)+'" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px;margin:6px 0;border-radius:10px;background:#1a1d24;border:1px solid '+(rnDiv(it)?'#b8860b':'#2a2d35')+'"><div style="width:64px;font-size:12px;color:#8ab4f8">'+escAttr(it.cod)+'</div><div style="flex:1;min-width:200px"><input class="rn-n" value="'+escAttr(it.nome)+'" style="width:100%;padding:8px;border-radius:8px;border:1px solid #444;background:#0f1115;color:#eee"><div style="font-size:11px;color:#888;margin-top:2px">'+escAttr(it.cat)+' · '+escAttr(rq)+'</div></div><input class="rn-u" value="'+escAttr(it.unit)+'" style="width:80px;padding:8px;border-radius:8px;border:1px solid #444;background:#0f1115;color:#eee" placeholder="Unid."><button onclick="rnSalvar(this.parentNode.dataset.cod)" style="padding:8px 12px;border-radius:8px;border:0;background:#1976d2;color:#fff;font-weight:700">Salvar</button></div>';
+  }).join('');
+}
+async function rnBackup(){
+  if(RN_BACKUP) return;
+  const s=await db.ref('/estoques').get();
+  await db.ref('/backup_estoques/'+new Date().toISOString().replace(/[:.]/g,'-')+'_renomear').set(s.val()||{});
+  RN_BACKUP=true;
+}
+async function rnSalvar(cod, silent){
+  const it=RN_ITENS.find(x=>x.cod===cod); if(!it) return false;
+  const row=[...document.querySelectorAll('.rn-row')].find(r=>r.dataset.cod===cod);
+  if(!row) return false;
+  const nome=row.querySelector('.rn-n').value.trim(), unit=row.querySelector('.rn-u').value.trim();
+  if(!nome||!unit){ showToast('Nome e unidade não podem ficar vazios'); return false; }
+  const mudou=nome!==it.nome||unit!==it.unit||it.reqs.some(r=>r.n!==nome||r.u!==unit);
+  if(!mudou){ if(!silent) showToast('Nada para alterar'); return true; }
+  try{
+    if(it.reqs.length) await rnBackup();
+    const ups={};
+    if(it.inv){ await db.ref('/produto_overrides/'+cod).update({desc:nome,unit:unit}); const p=PRODUCTS.find(x=>rnNorm(x.cod)===cod); if(p){p.desc=nome;p.unit=unit;} }
+    it.reqs.forEach(r=>{ ups['/estoques/'+r.est+'/'+r.key+'/n']=nome; ups['/estoques/'+r.est+'/'+r.key+'/u']=unit; });
+    if(Object.keys(ups).length) await db.ref().update(ups);
+    await db.ref('/renomeacoes_log').push({cod,de:{nome:it.nome,unit:it.unit},para:{nome,unit},em:Date.now()});
+    it.nome=nome; it.unit=unit; it.reqs.forEach(r=>{r.n=nome;r.u=unit;});
+    row.style.borderColor='#2e7d32';
+    if(!silent) showToast('✅ '+nome+' atualizado nos dois apps');
+    return true;
+  }catch(e){ showToast('⚠️ Erro ao salvar: '+e.message); return false; }
+}
+async function rnSalvarTodos(){
+  const rows=[...document.querySelectorAll('.rn-row')]; let n=0;
+  for(const r of rows){
+    const it=RN_ITENS.find(x=>x.cod===r.dataset.cod); if(!it) continue;
+    const nome=r.querySelector('.rn-n').value.trim(), unit=r.querySelector('.rn-u').value.trim();
+    if(nome!==it.nome||unit!==it.unit){ if(await rnSalvar(it.cod,true)) n++; }
+  }
+  showToast(n?('✅ '+n+' insumo(s) atualizados'):'Nenhuma alteração pendente');
+}
 async function exportarInsumosExcel(){
   try{
     showToast('⏳ Montando a planilha de insumos...');
