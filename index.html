@@ -5614,7 +5614,25 @@ function filterProdsGer(q){
   });
 }
 
-/* ===== Renomear insumos / unidades (Inventário + Requisição) ===== */
+/* Propaga nome/unidade do Inventário para a Requisição (estoques) sempre que o Gerencial muda um desses campos */
+async function rnPropagarRequisicao(cod, desc, unit){
+  try{
+    const c=String(cod).trim(); if(!c||c==='0') return;
+    const snap=await db.ref('/estoques').get(); if(!snap.exists()) return;
+    const est=snap.val(), ups={}; let n=0;
+    Object.keys(est).forEach(e=>Object.keys(est[e]||{}).forEach(k=>{
+      const x=est[e][k]; if(!x||String(x.c).trim()!==c) return;
+      if(x.n!==desc){ ups['/estoques/'+e+'/'+k+'/n']=desc; }
+      if((x.u||'')!==unit){ ups['/estoques/'+e+'/'+k+'/u']=unit; }
+      if(ups['/estoques/'+e+'/'+k+'/n']!==undefined || ups['/estoques/'+e+'/'+k+'/u']!==undefined) n++;
+    }));
+    if(!n) return;
+    if(typeof rnBackup==='function') await rnBackup();
+    await db.ref().update(ups);
+    await db.ref('/renomeacoes_log').push({tipo:'auto_gerencial',cod:c,nome:desc,unit:unit,itens:n,em:Date.now()});
+  }catch(e){ console.warn('Falha ao atualizar a Requisição', e); if(typeof showToast==='function') showToast('⚠️ Produto salvo, mas não consegui atualizar a Requisição: '+e.message); }
+}
+/* ===== Renomear insumos / unidades (Inventário + Requisição) =====*/
 let RN_ITENS=[], RN_BACKUP=false;
 function rnNorm(c){return String(c==null?'':c).trim();}
 async function abrirRenomear(){
@@ -5858,7 +5876,9 @@ async function salvarProdutoGer(cod, opts){
     });
 
     const p=PRODUCTS.find(x=>x.cod===cod);
+    const _mudouNomeUnid=!!(p && (p.desc!==desc || p.unit!==unit));
     if(p){p.desc=desc;p.unit=unit;p.cat=cat;}
+    if(_mudouNomeUnid) rnPropagarRequisicao(cod,desc,unit);
     ALLFOOD_META[cod]=[classe,subclasse];
     if(ativo) PRODUTOS_INATIVOS.delete(cod); else PRODUTOS_INATIVOS.add(cod);
     PORCAO_OVERRIDE.set(cod, porcao);
