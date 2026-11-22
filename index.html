@@ -834,7 +834,7 @@ const db = firebase.database();
    do login. localStorage key própria ('unidadeAtiva') pra não conflitar
    com outros PWAs MSH instalados no mesmo aparelho. ────────────── */
 const SETORES_POR_UNIDADE = {
-  'Cali Cravings':['MASHA ADM','MASHA PIER','LINHA COZINHA & BAR','CALI CAFÉ','ENXOVAL'],
+  'Cali Cravings':['MASHA ADM','MASHA PIER COZINHA','MASHA PIER BAR','LINHA COZINHA & BAR','CALI CAFÉ','ENXOVAL'],
   'Texas Country Bar':['TEXAS LINHA COZINHA & BAR','TEXAS BAR','TEXAS LIMPEZA']
 };
 function getUnidadeAtual(){
@@ -860,7 +860,7 @@ function popularSetores(){
   const grid=document.getElementById('setor-grid');
   if(grid) grid.innerHTML=setores.map(s=>`<button class="setor-btn span2" onclick="selSetor(this,'${s.replace(/'/g,"\\'")}')">${s}</button>`).join('');
   const fs=document.getElementById('f-setor');
-  if(fs) fs.innerHTML='<option value="">Todos os setores</option>'+setores.map(s=>`<option>${s}</option>`).join('');
+  if(fs) fs.innerHTML='<option value="">Todos os setores</option>'+setores.map(s=>`<option>${s}</option>`).join('')+(getUnidadeAtual()!=='Texas Country Bar'?'<option value="MASHA PIER">MASHA PIER (antigo)</option>':'');
 }
 aplicarTemaUnidade();
 popularSetores();
@@ -4753,6 +4753,7 @@ function exportSetor(){
     // já entregaram a fatia deles pro produto destino (ver aba Conversões).
     if(conversaoInfo(p.cod)) return;
     const q=saved[p.cod]!=null?saved[p.cod]:'';
+      if((setor==='MASHA PIER COZINHA'||setor==='MASHA PIER BAR')&&q==='') return; // relatório só com itens contados
     const meta=ALLFOOD_META[p.cod]||['',''];
     rows.push([p.cod,p.desc,p.unit,meta[0],meta[1],q]);
   });
@@ -4970,7 +4971,7 @@ async function loadAdmin(){
     // já que os setores do Texas são todos prefixados e nunca colidem com os
     // do Cali. Aplica ANTES dos filtros de data/setor da UI.
     const setoresUnidadeAtiva = SETORES_POR_UNIDADE[getUnidadeAtual()]||SETORES_POR_UNIDADE['Cali Cravings'];
-    ent = ent.filter(e=>setoresUnidadeAtiva.includes(e.setor));
+    ent = ent.filter(e=>setoresUnidadeAtiva.includes(e.setor)||(e.setor==='MASHA PIER'&&getUnidadeAtual()!=='Texas Country Bar'));
     if(fd) ent=ent.filter(e=>e.data===fd);
     if(fs) ent=ent.filter(e=>e.setor===fs);
     ent.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
@@ -4992,7 +4993,7 @@ async function loadAdmin(){
       return `
       <div class="cnt-card">
         <div class="cnt-info">
-          <strong>${e.setor}</strong>
+          <strong>${e.setor==='MASHA PIER'?'MASHA PIER (antigo)':e.setor}</strong>
           <span>${e.colaborador} · ${ptDate(e.data)}</span>
           <span>${Object.keys(e.itens||{}).length} itens contados</span>
           ${e.enviadoEstoque?`<span style="color:#0f6e56;font-weight:600">📦 Enviado ao estoque ${e.enviadoEstoque.estoque} em ${new Date(e.enviadoEstoque.em).toLocaleString('pt-BR')}</span>`:''}
@@ -5011,7 +5012,7 @@ async function loadAdmin(){
   }catch{con.innerHTML='<p style="color:var(--muted);text-align:center;padding:32px">❌ Erro ao carregar.</p>';}
 }
 
-const EST_MAP_INV={'MASHA ADM':'MASHA ADM','MASHA PIER':'MASHA PIER','LINHA COZINHA & BAR':'LINHA','CALI CAFÉ':'CALI CAFÉ','TEXAS LINHA COZINHA & BAR':'LINHA TEXAS','TEXAS BAR':'BAR'};
+const EST_MAP_INV={'MASHA ADM':'MASHA ADM','MASHA PIER':'MASHA PIER','MASHA PIER COZINHA':'MASHA PIER','MASHA PIER BAR':'MASHA PIER','LINHA COZINHA & BAR':'LINHA','CALI CAFÉ':'CALI CAFÉ','TEXAS LINHA COZINHA & BAR':'LINHA TEXAS','TEXAS BAR':'BAR'};
 async function abrirEnvioEstoque(idx){
   const key=window._adminKeys[idx]; if(!key) return;
   showToast('⏳ Preparando...',4000);
@@ -5367,7 +5368,7 @@ async function loadLixeira(){
       return `
       <div class="cnt-card">
         <div class="cnt-info">
-          <strong>${e.setor}</strong>
+          <strong>${e.setor==='MASHA PIER'?'MASHA PIER (antigo)':e.setor}</strong>
           <span>${e.colaborador} · ${ptDate(e.data)}</span>
           <span>${Object.keys(e.itens||{}).length} itens · excluído em ${new Date(e.excluidoEm||0).toLocaleString('pt-BR')}</span>
         </div>
