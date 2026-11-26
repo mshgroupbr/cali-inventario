@@ -5026,6 +5026,7 @@ function doXlsx(rows,fname){
 /* ── ADMIN LIST ──────────────────────────────── */
 async function loadAdmin(){
   popularSetores();
+  { const lb=document.querySelector('#screen-admin [onclick="abrirLixeira()"]'); if(lb) lb.style.display=window.modoLeitura?'none':''; }
   db.ref('/lixeira').get().then(s=>atualizarBadgeLixeira(s.exists()?Object.keys(s.val()).length:0)).catch(()=>{});
   const con=document.getElementById('admin-list');
   con.innerHTML='<p style="color:var(--muted);font-size:13px;padding:10px 0">Carregando...</p>';
@@ -5044,6 +5045,7 @@ async function loadAdmin(){
     if(fd) ent=ent.filter(e=>e.data===fd);
     if(fs) ent=ent.filter(e=>e.setor===fs);
     ent.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+    if(window.modoLeitura) ent=ent.filter(e=>e.status==='enviado');
     if(!ent.length){con.innerHTML='<p style="color:var(--muted);text-align:center;padding:32px">🔍 Nenhum resultado.</p>';return;}
     // store keys AND full entries in global map to avoid escaping issues
     window._adminKeys = {};
@@ -5072,9 +5074,9 @@ async function loadAdmin(){
             ${isEnviado?'✅ Enviado':'⏳ Rascunho'}</span>
           ${actionBtn}
           <button class="btn-sm" onclick="exportEntry(window._adminKeys[${i}])">Excel</button>
-          ${isEnviado?`<button class="btn-sm" onclick="pedirSenhaEnvio(${i})" title="Enviar os saldos ao app de transferências">📦 Estoque</button>`:''}
+          ${(isEnviado&&!window.modoLeitura)?`<button class="btn-sm" onclick="pedirSenhaEnvio(${i})" title="Enviar os saldos ao app de transferências">📦 Estoque</button>`:''}
           ${allfoodBtn}
-          <button class="btn-del" onclick="confirmDelete(window._adminKeys[${i}])" title="Excluir">🗑️</button>
+          ${window.modoLeitura?'':`<button class="btn-del" onclick="confirmDelete(window._adminKeys[${i}])" title="Excluir">🗑️</button>`}
         </div>
       </div>`;
     }).join('');
@@ -5367,6 +5369,7 @@ async function importarEGerarAllfood(input){
 let _delKey=null;
 let _delMode='lixeira'; // 'lixeira' = mover pra lixeira | 'permanente' = apagar de vez
 function confirmDelete(key){
+  if(window.modoLeitura){showToast('Sem permissão para excluir.');return;}
   _delKey=key;
   _delMode='lixeira';
   document.getElementById('del-title').textContent='Excluir Contagem';
@@ -5391,6 +5394,7 @@ function closeDelModal(){
   document.getElementById('overlay-del').classList.remove('on');
 }
 async function doDelete(){
+  if(window.modoLeitura){showToast('Sem permissão para excluir.');return;}
   const pw=document.getElementById('del-senha').value;
   if(pw!=='000813'){
     document.getElementById('del-erro').style.display='block';
@@ -5475,6 +5479,7 @@ async function atualizarBadgeLixeira(n){
 }
 /* ── ACESSO CONTAGENS FINALIZADAS (senha) ──── */
 function confirmContagens(){
+  window.modoLeitura=false;
   document.getElementById('cont-senha').value='';
   document.getElementById('cont-erro').style.display='none';
   document.getElementById('overlay-cont').classList.add('on');
@@ -5485,11 +5490,14 @@ function closeContModal(){
 }
 async function doContAccess(){
   const pw=document.getElementById('cont-senha').value.trim();
-  if(pw!=='000813' && pw!=='2202'){
+  const pwl=pw.toLowerCase();
+  if(pw!=='000813' && pw!=='2202' && pwl!=='stephanie'){
     document.getElementById('cont-erro').style.display='block';
     document.getElementById('cont-senha').value='';return;
   }
   closeContModal();
+  window.modoLeitura=(pwl==='stephanie');
+  if(window.modoLeitura){ try{ const ag=new Date(); db.ref('/acessos_leitura/'+ag.getFullYear()+'-'+String(ag.getMonth()+1).padStart(2,'0')+'-'+String(ag.getDate()).padStart(2,'0')).push({nome:'Stephanie',hora:String(ag.getHours()).padStart(2,'0')+':'+String(ag.getMinutes()).padStart(2,'0'),timestamp:Date.now()}); }catch(e){} }
   verContagens();
 }
 function verContagens(){
@@ -5515,6 +5523,7 @@ function closeGerModal(){
   document.getElementById('overlay-ger').classList.remove('on');
 }
 async function doGerAccess(){
+  window.modoLeitura=false;
   const pw=document.getElementById('ger-senha').value.trim();
   if(pw!=='000813' && pw!=='2202'){
     document.getElementById('ger-erro').style.display='block';
