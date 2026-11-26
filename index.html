@@ -346,6 +346,34 @@ input:focus,select:focus{border-color:var(--verde);background:var(--branco);}
 .btn-ger-save:hover{background:var(--verde-clar);}
 
 .gone{display:none!important;}
+/* ── ESTOQUE TESTE (nota fiscal → estoque) ── */
+.et-tabs{display:flex;gap:6px;padding:10px 14px 0;flex-wrap:wrap}
+.et-tab{padding:8px 14px;border-radius:20px;border:2px solid var(--verde);background:var(--branco);color:var(--verde);font-weight:600;font-size:13px;cursor:pointer}
+.et-tab.on{background:var(--verde);color:var(--areia)}
+.et-wrap{padding:12px 14px 90px;max-width:900px;margin:0 auto}
+.et-banner{background:#FFF6D6;border:1px solid #E6C84C;color:#6b5a00;border-radius:10px;padding:9px 12px;font-size:12px;margin-bottom:12px}
+.et-row{background:var(--branco);border-radius:10px;padding:10px 12px;margin-bottom:8px;box-shadow:var(--sombra);display:flex;gap:10px;align-items:center;justify-content:space-between}
+.et-row .t{font-weight:600;font-size:13px}.et-row .s{font-size:11px;color:var(--muted)}
+.et-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.et-pill.p{background:#FFE9B8;color:#7a5a00}.et-pill.l{background:#D6ECFF;color:#0b4a7a}.et-pill.c{background:var(--verde-fill);color:var(--verde)}.et-pill.d{background:#eee;color:#666}
+.et-btn{padding:8px 12px;border-radius:8px;border:2px solid var(--verde);background:var(--verde);color:var(--areia);font-weight:600;font-size:12px;cursor:pointer}
+.et-btn.g{background:var(--branco);color:var(--verde)}.et-btn.r{background:#fff;color:#b33;border-color:#b33}
+.et-conf{display:none;position:fixed;inset:0;background:var(--areia);z-index:160;overflow-y:auto}
+.et-conf.on{display:block}
+.et-conf-hd{background:var(--verde);color:var(--areia);padding:12px 14px;position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.et-head-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.et-head-grid input,.et-head-grid select,.et-it input,.et-it select{width:100%;padding:8px;border:1px solid var(--borda);border-radius:8px;font-size:13px;font-family:inherit}
+.et-it{background:var(--branco);border-radius:10px;padding:10px;margin-bottom:8px;box-shadow:var(--sombra)}
+.et-it.ign{opacity:.5}.et-it.warn{border-left:4px solid #E6A100}.et-it.ok{border-left:4px solid #3a9a5c}.et-it.dup{border-left:4px solid #b33}
+.et-it .n{font-weight:600;font-size:13px;margin-bottom:6px}
+.et-it .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
+.et-it label{font-size:10px;color:var(--muted);display:block;margin-bottom:2px}
+.et-foto{max-width:100%;border-radius:8px;margin-bottom:8px;border:1px solid var(--borda)}
+.et-tbl{width:100%;border-collapse:collapse;font-size:12px;background:var(--branco);border-radius:10px;overflow:hidden}
+.et-tbl th,.et-tbl td{padding:7px 8px;border-bottom:1px solid var(--areia-med);text-align:left}
+.et-tbl th{background:var(--areia-med);font-size:11px}
+.et-tbl td.n,.et-tbl th.n{text-align:right}
+
 </style>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -600,6 +628,7 @@ body.tema-texas .hdr,body.desk.tema-texas #side{background:var(--verde)}
     </select>
     <button class="btn-ger-novo" onclick="abrirNovoProduto()">➕ Novo Produto</button>
     <button class="btn-ger-novo" onclick="abrirColaboradores()">👥 Colaboradores</button>
+    <button class="btn-ger-novo" onclick="abrirEstoqueTeste()">🧪 Estoque Teste</button>
     <button class="btn-ger-novo" onclick="abrirAcessosHoje()">🕐 Acessos de hoje</button>
     <button class="btn-ger-novo" onclick="abrirRenomear()">✏️ Renomear insumos / unidades</button>
     <button class="btn-ger-novo" onclick="exportarInsumosExcel()">📥 Exportar insumos (Excel)</button>
@@ -612,6 +641,40 @@ body.tema-texas .hdr,body.desk.tema-texas #side{background:var(--verde)}
     <button class="btn-send" id="btn-salvar-todos" onclick="salvarTodosProdutosGer()">💾 Salvar Todos</button>
   </div>
   <datalist id="dl-produtos-ger"></datalist>
+</div>
+
+<!-- ESTOQUE TESTE (nota fiscal → estoque) -->
+<div id="screen-estoque-teste" class="screen">
+  <div class="ger-toolbar">
+    <button class="btn-ger-novo" onclick="showScreen('gerencial')">← Gerencial</button>
+    <select id="et-local" onchange="etRender()">
+      <option value="cali">Cali</option>
+      <option value="texas">Texas</option>
+    </select>
+    <label class="btn-ger-novo" style="cursor:pointer">📷 Foto da nota
+      <input type="file" id="et-file" accept="image/*" multiple style="display:none" onchange="etEnviarFotos(this)">
+    </label>
+    <button class="btn-ger-novo" onclick="etNotaManual()">✍️ Nota manual</button>
+  </div>
+  <div class="et-tabs">
+    <button class="et-tab on" id="et-tab-estoque" onclick="etTab('estoque')">📦 Estoque</button>
+    <button class="et-tab" id="et-tab-notas" onclick="etTab('notas')">🧾 Notas<span id="et-badge"></span></button>
+    <button class="et-tab" id="et-tab-mov" onclick="etTab('mov')">📜 Movimentos</button>
+  </div>
+  <div class="et-wrap">
+    <div class="et-banner">🧪 <b>Estoque de TESTE.</b> Não mexe nas contagens, nem nos preços do Gestão, nem no estoque real. Só vale aqui dentro.</div>
+    <div id="et-body"></div>
+    <div style="margin-top:18px"><button class="et-btn r" onclick="etZerar()">Zerar estoque teste</button></div>
+  </div>
+</div>
+
+<!-- CONFERÊNCIA DA NOTA -->
+<div id="et-conf" class="et-conf">
+  <div class="et-conf-hd">
+    <b id="et-conf-tit">Conferir nota</b>
+    <button class="et-btn g" onclick="etFecharConf()">Fechar</button>
+  </div>
+  <div class="et-wrap" id="et-conf-body"></div>
 </div>
 
 <!-- MODAL COLABORADORES AUTORIZADOS (login Google) -->
@@ -6229,6 +6292,268 @@ function atualizarLayoutTela(id){
   document.querySelectorAll('.screen').forEach(function(s){mo.observe(s,{attributes:true,attributeFilter:['class']});});
   atual();
 })();
+/* ══ ESTOQUE TESTE — nota fiscal → estoque (Gerencial) ══════════════════
+   Tudo grava em /estoque_teste/* (separado do estoque/contagens reais).
+   fila/{id}            {criadoEm, por, local, nFotos, status, leitura?}
+   fotos/{id}           [dataURL,…]
+   equivalencias/{key}  {cod, fator, item}       (aprendizado nome NF → produto)
+   notas_confirmadas/{docKey} {filaId, em, por, local, itens:[{cod,q,custo}]}  (anti-duplicidade)
+   saldo/{local}/{cod}  {qtd, ultimoCusto, ultimoDoc, atualizadoEm}
+   movimentos/{push}    {ts, local, cod, tipo, qtd, custoUnit, docKey, doc, fornecedor, por}
+   ═══════════════════════════════════════════════════════════════════ */
+const ETB='/estoque_teste';
+const ET_IGNORAR=/frete|bonifica|brinde|amostra|desconto|taxa |embalag|sacola|vasilhame|troco|servi[cç]o|acrescimo|acréscimo/i;
+const ET_UN_PALAVRAS=new Set(['un','und','unid','unidade','kg','kgs','g','gr','l','lt','lts','ml','cx','caixa','fd','fardo','pct','pacote','pc','pç','sc','saco','gf','grf','garrafa','lata','bd','bandeja','dz','duzia']);
+let etS={tab:'estoque',fila:{},saldo:{},mov:[],equiv:{},docs:{},conf:null,busca:''};
+function etE(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function etNorm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\([^)]*\)/g,' ').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();}
+function etKey(s){return etNorm(s).split(' ').filter(w=>w&&!ET_UN_PALAVRAS.has(w)).join('_').slice(0,80)||'item';}
+function etNum(v){if(typeof v==='number')return v;let s=String(v==null?'':v).trim().replace(/[^\d,.\-]/g,'');if(s.indexOf(',')>-1)s=s.replace(/\./g,'').replace(',','.');const n=parseFloat(s);return isNaN(n)?0:n;}
+function etFmt(n,d=2){return (Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function etLocalAtual(){return document.getElementById('et-local').value;}
+function etDocKey(l){const doc=String(l.documento||'').replace(/\D/g,'').replace(/^0+/,'');return etKey(l.fornecedor||'sem')+'_'+(doc||'semdoc')+'_'+(l.data||'');}
+function etQuem(){try{if(typeof googleUser!=='undefined'&&googleUser&&googleUser.email)return googleUser.email;}catch(e){}try{return nome||'gerencial';}catch(e){return 'gerencial';}}
+function etProdutos(){return PRODUCTS.filter(p=>!PRODUTOS_INATIVOS.has(p.cod));}
+function etProd(cod){return PRODUCTS.find(p=>p.cod===cod);}
+
+/* Fator de conversão sugerido quando a unidade da nota ≠ unidade do estoque */
+function etFatorSugerido(unNF,unProd){
+  const a=String(unNF||'').toUpperCase().trim(),b=String(unProd||'').toUpperCase().trim();
+  if(!a||!b||a===b)return {f:1,certo:true};
+  const par={'KG>G':1000,'G>KG':.001,'L>ML':1000,'ML>L':.001,'LT>L':1,'L>LT':1,'UN>UND':1,'UND>UN':1,'UNID>UN':1,'UN>UNID':1};
+  const k=a+'>'+b;if(par[k]!=null)return {f:par[k],certo:true};
+  return {f:1,certo:false};
+}
+/* Casamento nome da nota → produto do estoque (equivalência aprendida > similaridade) */
+function etMatch(nomeNF){
+  const key=etKey(nomeNF);
+  const eq=etS.equiv[key];
+  if(eq&&etProd(eq.cod))return {cod:eq.cod,fator:eq.fator,origem:'aprendido'};
+  const tk=etNorm(nomeNF).split(' ').filter(w=>w.length>1&&!ET_UN_PALAVRAS.has(w));
+  if(!tk.length)return null;
+  let best=null,bs=0;
+  etProdutos().forEach(p=>{
+    const pt=etNorm(p.desc).split(' ').filter(w=>w.length>1&&!ET_UN_PALAVRAS.has(w));
+    if(!pt.length)return;
+    let hit=0;
+    tk.forEach(w=>{if(pt.some(x=>x===w||(w.length>3&&x.length>3&&(x.startsWith(w)||w.startsWith(x)))))hit++;});
+    const sc=hit/Math.max(tk.length,pt.length)*0.6+hit/tk.length*0.4;
+    if(sc>bs){bs=sc;best=p;}
+  });
+  return (best&&bs>=0.6)?{cod:best.cod,fator:null,origem:'sugerido'}:null;
+}
+
+/* ── Carregar dados ── */
+async function etCarregar(){
+  try{
+    const [f,s,e,m,d]=await Promise.all([
+      db.ref(ETB+'/fila').get(),db.ref(ETB+'/saldo').get(),db.ref(ETB+'/equivalencias').get(),
+      db.ref(ETB+'/movimentos').orderByKey().limitToLast(150).get(),db.ref(ETB+'/notas_confirmadas').get()]);
+    etS.fila=f.val()||{};etS.saldo=s.val()||{};etS.equiv=e.val()||{};etS.docs=d.val()||{};
+    const mv=m.val()||{};etS.mov=Object.keys(mv).sort().reverse().map(k=>mv[k]);
+  }catch(err){showToast('Erro ao carregar estoque teste: '+err.message);}
+  etRender();
+}
+function abrirEstoqueTeste(){
+  const u=getUnidadeAtual();document.getElementById('et-local').value=(u==='Texas Country Bar')?'texas':'cali';
+  showScreen('estoque-teste');etCarregar();
+}
+function etTab(t){etS.tab=t;['estoque','notas','mov'].forEach(x=>document.getElementById('et-tab-'+x).classList.toggle('on',x===t));etRender();}
+
+/* ── Render das abas ── */
+function etRender(){
+  const loc=etLocalAtual(),el=document.getElementById('et-body');
+  const pend=Object.keys(etS.fila).filter(k=>etS.fila[k].status==='pendente'||etS.fila[k].status==='lida').length;
+  document.getElementById('et-badge').innerHTML=pend?' <span class="et-pill p">'+pend+'</span>':'';
+  if(etS.tab==='estoque'){
+    const sd=etS.saldo[loc]||{};
+    let rows=Object.keys(sd).map(c=>({cod:c,p:etProd(c),...sd[c]})).filter(r=>(r.qtd||r.ultimoCusto));
+    const q=etNorm(etS.busca);if(q)rows=rows.filter(r=>etNorm((r.p&&r.p.desc)||'').includes(q)||r.cod.includes(q));
+    rows.sort((a,b)=>((a.p&&a.p.desc)||a.cod).localeCompare((b.p&&b.p.desc)||b.cod));
+    const tot=rows.reduce((s,r)=>s+(r.qtd||0)*(r.ultimoCusto||0),0);
+    el.innerHTML='<div class="fld"><input type="text" placeholder="🔍 Buscar no estoque teste..." value="'+etE(etS.busca)+'" oninput="etS.busca=this.value;etRender()"></div>'+
+      (rows.length?'<table class="et-tbl"><tr><th>Produto</th><th class="n">Qtd</th><th>Un</th><th class="n">Últ. custo</th><th class="n">Valor</th></tr>'+
+      rows.map(r=>'<tr><td>'+etE(r.p?r.p.desc:r.cod)+'<div class="s" style="font-size:10px;color:var(--muted)">cód '+etE(r.cod)+'</div></td><td class="n"><b>'+etFmt(r.qtd,3)+'</b></td><td>'+etE(r.p?r.p.unit:'')+'</td><td class="n">R$ '+etFmt(r.ultimoCusto)+'</td><td class="n">R$ '+etFmt((r.qtd||0)*(r.ultimoCusto||0))+'</td></tr>').join('')+
+      '<tr><th colspan="4">Total em estoque teste ('+(loc==='texas'?'Texas':'Cali')+')</th><th class="n">R$ '+etFmt(tot)+'</th></tr></table>'
+      :'<div class="et-row"><div class="s">Estoque teste de '+(loc==='texas'?'Texas':'Cali')+' vazio. Tire a foto de uma nota fiscal (📷) ou lance uma nota manual.</div></div>');
+  }else if(etS.tab==='notas'){
+    const ids=Object.keys(etS.fila).filter(k=>(etS.fila[k].local||'cali')===loc).sort((a,b)=>(etS.fila[b].criadoEm||0)-(etS.fila[a].criadoEm||0));
+    el.innerHTML=ids.length?ids.map(id=>{
+      const n=etS.fila[id],L=n.leitura||{},st=n.status;
+      const pill=st==='confirmada'?'<span class="et-pill c">no estoque</span>':st==='lida'?'<span class="et-pill l">lida · conferir</span>':st==='descartada'?'<span class="et-pill d">descartada</span>':'<span class="et-pill p">aguardando leitura</span>';
+      const tit=L.fornecedor?(etE(L.fornecedor)+' · NF '+etE(L.documento||'?')):('Foto de '+new Date(n.criadoEm).toLocaleString('pt-BR'));
+      return '<div class="et-row"><div><div class="t">'+tit+'</div><div class="s">'+etE(L.data||'')+' · '+(n.nFotos||0)+' foto(s) · '+etE(n.por||'')+'</div></div><div style="text-align:right">'+pill+'<div style="margin-top:6px">'+
+        (st==='confirmada'?'<button class="et-btn g" onclick="etDesfazer(\''+id+'\')">Desfazer</button>':
+         '<button class="et-btn" onclick="etAbrirConf(\''+id+'\')">'+(st==='lida'?'Conferir':'Preencher')+'</button> <button class="et-btn r" onclick="etDescartar(\''+id+'\')">✕</button>')+
+        '</div></div></div>';}).join(''):'<div class="et-row"><div class="s">Nenhuma nota ainda.</div></div>';
+  }else{
+    const ms=etS.mov.filter(m=>m.local===loc);
+    el.innerHTML=ms.length?'<table class="et-tbl"><tr><th>Quando</th><th>Produto</th><th class="n">Qtd</th><th class="n">Custo un.</th><th>Origem</th></tr>'+
+      ms.map(m=>{const p=etProd(m.cod);return '<tr><td>'+etE(new Date(m.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))+'</td><td>'+etE(p?p.desc:m.cod)+'</td><td class="n" style="color:'+(m.qtd<0?'#b33':'#1a7a3e')+'">'+(m.qtd>0?'+':'')+etFmt(m.qtd,3)+'</td><td class="n">R$ '+etFmt(m.custoUnit)+'</td><td>'+etE(m.tipo==='estorno'?'estorno ':'')+'NF '+etE(m.doc||'')+'<div style="font-size:10px;color:var(--muted)">'+etE(m.fornecedor||'')+'</div></td></tr>';}).join('')+'</table>':
+      '<div class="et-row"><div class="s">Sem movimentos.</div></div>';
+  }
+}
+
+/* ── Foto → fila ── */
+function etRedimensionar(file,max=1600,q=.72){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{let w=img.width,h=img.height;const k=Math.min(1,max/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',q));};
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('imagem inválida'));};img.src=url;
+  });
+}
+async function etEnviarFotos(inp){
+  const files=[...inp.files].slice(0,6);inp.value='';if(!files.length)return;
+  try{
+    showToast('Enviando foto(s)...',8000);
+    const fotos=[];for(const f of files)fotos.push(await etRedimensionar(f));
+    const id=db.ref(ETB+'/fila').push().key;
+    await db.ref(ETB+'/fotos/'+id).set(fotos);
+    await db.ref(ETB+'/fila/'+id).set({criadoEm:Date.now(),por:etQuem(),local:etLocalAtual(),nFotos:fotos.length,status:'pendente'});
+    showToast('✅ Foto enviada. Aguardando leitura — ou toque em Preencher.');
+    etS.tab='notas';etTab('notas');etCarregar();
+  }catch(e){showToast('Erro ao enviar: '+e.message,5000);}
+}
+async function etNotaManual(){
+  const id=db.ref(ETB+'/fila').push().key;
+  await db.ref(ETB+'/fila/'+id).set({criadoEm:Date.now(),por:etQuem(),local:etLocalAtual(),nFotos:0,status:'pendente'});
+  await etCarregar();etAbrirConf(id);
+}
+async function etDescartar(id){
+  if(!confirm('Descartar esta nota?'))return;
+  await db.ref(ETB+'/fila/'+id+'/status').set('descartada');etCarregar();
+}
+
+/* ── Conferência ── */
+async function etAbrirConf(id){
+  const n=etS.fila[id];if(!n)return;
+  const L=JSON.parse(JSON.stringify(n.leitura||{fornecedor:'',documento:'',data:new Date().toISOString().slice(0,10),total:'',itens:[]}));
+  L.itens=(L.itens||[]).map(it=>etPrepItem(it));
+  let fotos=[];try{const s=await db.ref(ETB+'/fotos/'+id).get();fotos=s.val()||[];}catch(e){}
+  etS.conf={id,L,fotos,local:n.local||etLocalAtual()};
+  document.getElementById('et-conf').classList.add('on');
+  etRenderConf();
+}
+function etPrepItem(it){
+  const o={item:it.item||'',qtd:it.qtd!=null?it.qtd:'',unidade:it.unidade||'',valorTotal:it.valorTotal!=null?it.valorTotal:'',cod:it.cod||'',fator:it.fator||'',ignorar:!!it.ignorar,origem:it.origem||''};
+  if(!o.cod&&o.item){
+    if(ET_IGNORAR.test(o.item))o.ignorar=true;
+    else{const m=etMatch(o.item);if(m){o.cod=m.cod;o.origem=m.origem;if(m.fator)o.fator=m.fator;}}
+  }
+  if(o.cod&&!o.fator){const p=etProd(o.cod);const s=etFatorSugerido(o.unidade,p&&p.unit);o.fator=s.f;o.fatorIncerto=!s.certo;}
+  return o;
+}
+function etFecharConf(){document.getElementById('et-conf').classList.remove('on');etS.conf=null;}
+function etLerConf(){ /* lê campos da tela de volta pro estado */
+  const c=etS.conf;if(!c)return;
+  const g=i=>document.getElementById(i);
+  c.L.fornecedor=g('etc-forn').value;c.L.documento=g('etc-doc').value;c.L.data=g('etc-data').value;c.L.total=g('etc-total').value;c.local=g('etc-loc').value;
+  c.L.itens.forEach((it,i)=>{
+    it.item=g('eti-n'+i).value;it.qtd=g('eti-q'+i).value;it.unidade=g('eti-u'+i).value;it.valorTotal=g('eti-v'+i).value;
+    it.fator=g('eti-f'+i).value;it.ignorar=g('eti-i'+i).checked;
+    const m=/^\s*([^\s—-]+)/.exec(g('eti-p'+i).value||'');const cod=m?m[1]:'';
+    if(cod!==it.cod){it.cod=etProd(cod)?cod:'';if(it.cod){const p=etProd(cod);const s=etFatorSugerido(it.unidade,p.unit);it.fator=s.f;it.fatorIncerto=!s.certo;it.origem='manual';}}
+  });
+}
+function etAddLinha(){etLerConf();etS.conf.L.itens.push(etPrepItem({item:'',qtd:'',unidade:'UN',valorTotal:''}));etRenderConf();}
+function etRemLinha(i){etLerConf();etS.conf.L.itens.splice(i,1);etRenderConf();}
+function etReMatch(i){etLerConf();const it=etS.conf.L.itens[i];it.cod='';it.fator='';etS.conf.L.itens[i]=etPrepItem(it);etRenderConf();}
+function etCalc(){
+  const c=etS.conf,L=c.L,dk=etDocKey(L);
+  let soma=0,pend=0;const usados=L.itens.filter(it=>!it.ignorar);
+  L.itens.forEach(it=>{soma+=etNum(it.valorTotal);});
+  usados.forEach(it=>{if(!it.cod||!(etNum(it.fator)>0)||!(etNum(it.qtd)>0))pend++;});
+  return {dk,soma,pend,dup:!!etS.docs[dk]&&etS.docs[dk].filaId!==c.id,usados:usados.length};
+}
+function etRenderConf(){
+  const c=etS.conf;if(!c)return;const L=c.L;const k=etCalc();
+  document.getElementById('et-conf-tit').textContent='Conferir nota'+(L.documento?' · NF '+L.documento:'');
+  const dl='<datalist id="et-dl">'+etProdutos().map(p=>'<option value="'+etE(p.cod+' — '+p.desc+' ('+p.unit+')')+'">').join('')+'</datalist>';
+  const itens=L.itens.map((it,i)=>{
+    const p=it.cod?etProd(it.cod):null;
+    const f=etNum(it.fator),q=etNum(it.qtd),v=etNum(it.valorTotal);
+    const cls=it.ignorar?'ign':(!p||!(f>0)||!(q>0))?'warn':(it.fatorIncerto||it.origem==='sugerido')?'warn':'ok';
+    const info=(p&&f>0&&q>0)?('→ entra <b>'+etFmt(q*f,3)+' '+etE(p.unit)+'</b> · custo <b>R$ '+etFmt(v/(q*f))+'</b>/'+etE(p.unit)):'';
+    const aviso=it.ignorar?'':(!p?'⚠️ Escolha o produto do estoque':it.fatorIncerto?'⚠️ Unidade da nota ('+etE(it.unidade)+') ≠ estoque ('+etE(p.unit)+'). Confira o fator.':it.origem==='sugerido'?'⚠️ Produto sugerido — confirme.':'');
+    return '<div class="et-it '+cls+'"><div class="n"><input id="eti-n'+i+'" value="'+etE(it.item)+'" placeholder="Item como está na nota" onchange="etReMatch('+i+')"></div>'+
+      '<div class="g3"><div><label>Qtd da nota</label><input id="eti-q'+i+'" inputmode="decimal" value="'+etE(it.qtd)+'" onchange="etLerConf();etRenderConf()"></div>'+
+      '<div><label>Un. da nota</label><input id="eti-u'+i+'" value="'+etE(it.unidade)+'" onchange="etLerConf();etRenderConf()"></div>'+
+      '<div><label>Valor total R$</label><input id="eti-v'+i+'" inputmode="decimal" value="'+etE(it.valorTotal)+'" onchange="etLerConf();etRenderConf()"></div></div>'+
+      '<div class="g3" style="grid-template-columns:2fr 1fr"><div><label>Produto no estoque</label><input id="eti-p'+i+'" list="et-dl" value="'+etE(p?(p.cod+' — '+p.desc+' ('+p.unit+')'):'')+'" onchange="etLerConf();etRenderConf()"></div>'+
+      '<div><label>Fator (1 '+etE(it.unidade||'un')+' = ? '+etE(p?p.unit:'')+')</label><input id="eti-f'+i+'" inputmode="decimal" value="'+etE(it.fator)+'" onchange="etLerConf();etRenderConf()"></div></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:12px"><label style="display:flex;gap:5px;align-items:center;font-size:12px;color:var(--texto)"><input type="checkbox" id="eti-i'+i+'" '+(it.ignorar?'checked':'')+' style="width:auto" onchange="etLerConf();etRenderConf()"> Não entra no estoque (frete, bonificação…)</label><button class="et-btn r" onclick="etRemLinha('+i+')">remover</button></div>'+
+      '<div style="font-size:12px;margin-top:5px;color:#6b5a00">'+aviso+'</div><div style="font-size:12px;margin-top:3px">'+info+'</div></div>';
+  }).join('');
+  const dif=L.total!==''&&Math.abs(etNum(L.total)-k.soma)>0.05;
+  document.getElementById('et-conf-body').innerHTML=dl+
+    (c.fotos.length?c.fotos.map(s=>'<img class="et-foto" src="'+s+'">').join(''):'')+
+    (k.dup?'<div class="et-it dup"><b>⛔ Nota duplicada.</b> Esta NF (mesmo fornecedor/número/data) já entrou no estoque teste. Use “Desfazer” na aba Notas se quiser lançar de novo.</div>':'')+
+    '<div class="et-head-grid"><div><label>Fornecedor</label><input id="etc-forn" value="'+etE(L.fornecedor)+'" onchange="etLerConf();etRenderConf()"></div>'+
+    '<div><label>Nº da nota</label><input id="etc-doc" value="'+etE(L.documento)+'" onchange="etLerConf();etRenderConf()"></div>'+
+    '<div><label>Data</label><input type="date" id="etc-data" value="'+etE(L.data)+'" onchange="etLerConf();etRenderConf()"></div>'+
+    '<div><label>Total impresso R$</label><input id="etc-total" inputmode="decimal" value="'+etE(L.total)+'" onchange="etLerConf();etRenderConf()"></div>'+
+    '<div><label>Estoque de</label><select id="etc-loc" onchange="etLerConf()"><option value="cali"'+(c.local==='cali'?' selected':'')+'>Cali</option><option value="texas"'+(c.local==='texas'?' selected':'')+'>Texas</option></select></div></div>'+
+    itens+'<button class="et-btn g" onclick="etAddLinha()">➕ Adicionar linha</button>'+
+    '<div class="et-row" style="margin-top:12px"><div><div class="t">Soma das linhas: R$ '+etFmt(k.soma)+'</div><div class="s">'+(dif?'<span style="color:#b33">⚠️ Difere do total impresso (R$ '+etFmt(etNum(L.total))+')</span>':'Confere com o total impresso')+' · '+k.usados+' linha(s) entram no estoque</div></div></div>'+
+    '<div style="display:flex;gap:8px;margin-top:10px"><button class="et-btn g" style="flex:1;padding:12px" onclick="etSalvarLeitura()">💾 Salvar rascunho</button>'+
+    '<button class="et-btn" style="flex:2;padding:12px'+((k.pend||k.dup||!k.usados||!L.documento||!L.fornecedor)?';opacity:.5':'')+'" onclick="etConfirmar()" '+((k.pend||k.dup||!k.usados||!L.documento||!L.fornecedor)?'disabled':'')+'>✅ Dar entrada no estoque teste</button></div>'+
+    ((k.pend||!L.documento||!L.fornecedor)&&!k.dup?'<div class="s" style="font-size:11px;color:var(--muted);margin-top:6px">Para dar entrada: informe fornecedor e nº da nota, e deixe todas as linhas com produto, qtd e fator (ou marque “não entra”).</div>':'');
+}
+function etLimparLeitura(L){
+  return {fornecedor:String(L.fornecedor||'').trim(),documento:String(L.documento||'').trim(),data:L.data||'',total:L.total===''?'':etNum(L.total),
+    itens:L.itens.map(it=>({item:it.item||'',qtd:etNum(it.qtd),unidade:it.unidade||'',valorTotal:etNum(it.valorTotal),cod:it.cod||'',fator:etNum(it.fator)||0,ignorar:!!it.ignorar,origem:it.origem||''}))};
+}
+async function etSalvarLeitura(){
+  etLerConf();const c=etS.conf;
+  await db.ref(ETB+'/fila/'+c.id).update({leitura:etLimparLeitura(c.L),local:c.local,status:'lida'});
+  showToast('Rascunho salvo');etCarregar();
+}
+async function etConfirmar(){
+  etLerConf();const c=etS.conf,L=etLimparLeitura(c.L),k=etCalc();
+  if(k.pend||k.dup||!k.usados){showToast('Há pendências na nota');return;}
+  const dif=L.total!==''&&Math.abs(L.total-k.soma)>0.05;
+  if(dif&&!confirm('A soma das linhas (R$ '+etFmt(k.soma)+') difere do total impresso (R$ '+etFmt(L.total)+'). Dar entrada mesmo assim?'))return;
+  const dk=k.dk,usados=L.itens.filter(it=>!it.ignorar).map(it=>({...it,q:it.qtd*it.fator,custo:it.valorTotal/(it.qtd*it.fator)}));
+  // 1) trava anti-duplicidade (atômica)
+  const lock=await db.ref(ETB+'/notas_confirmadas/'+dk).transaction(cur=>cur?undefined:{filaId:c.id,em:Date.now(),por:etQuem(),local:c.local,itens:usados.map(u=>({cod:u.cod,q:u.q,custo:u.custo}))});
+  if(!lock.committed){showToast('⛔ Nota duplicada — já está no estoque teste',5000);return;}
+  try{
+    const agg={};usados.forEach(u=>{(agg[u.cod]=agg[u.cod]||{q:0,custo:u.custo});agg[u.cod].q+=u.q;agg[u.cod].custo=u.custo;});
+    for(const cod of Object.keys(agg)){
+      await db.ref(ETB+'/saldo/'+c.local+'/'+cod).transaction(cur=>{cur=cur||{qtd:0};return {qtd:Math.round(((cur.qtd||0)+agg[cod].q)*10000)/10000,ultimoCusto:Math.round(agg[cod].custo*10000)/10000,ultimoDoc:L.documento,atualizadoEm:Date.now()};});
+    }
+    const up={};const ts=Date.now();
+    usados.forEach(u=>{up['movimentos/'+db.ref().push().key]={ts,local:c.local,cod:u.cod,tipo:'entrada_nf',qtd:Math.round(u.q*10000)/10000,custoUnit:Math.round(u.custo*10000)/10000,docKey:dk,doc:L.documento,fornecedor:L.fornecedor,por:etQuem()};
+      up['equivalencias/'+etKey(u.item)]={cod:u.cod,fator:u.fator,item:u.item};});
+    up['fila/'+c.id+'/leitura']=L;up['fila/'+c.id+'/status']='confirmada';up['fila/'+c.id+'/local']=c.local;
+    await db.ref(ETB).update(up);
+    showToast('✅ Entrada feita no estoque teste',4000);etFecharConf();etS.tab='estoque';etTab('estoque');etCarregar();
+  }catch(e){
+    try{await db.ref(ETB+'/notas_confirmadas/'+dk).remove();}catch(_){}
+    showToast('Erro ao dar entrada: '+e.message+' (nota liberada p/ nova tentativa)',6000);
+  }
+}
+async function etDesfazer(id){
+  const n=etS.fila[id];if(!n||!n.leitura)return;
+  const dk=etDocKey(n.leitura),d=etS.docs[dk];
+  if(!d){showToast('Registro da nota não encontrado');return;}
+  if(!confirm('Desfazer a entrada desta nota? O estoque teste será estornado.'))return;
+  const loc=d.local||n.local||'cali',ts=Date.now(),up={};
+  for(const it of (d.itens||[])){
+    await db.ref(ETB+'/saldo/'+loc+'/'+it.cod).transaction(cur=>{cur=cur||{qtd:0};cur.qtd=Math.round(((cur.qtd||0)-it.q)*10000)/10000;cur.atualizadoEm=Date.now();return cur;});
+    up['movimentos/'+db.ref().push().key]={ts,local:loc,cod:it.cod,tipo:'estorno',qtd:-Math.round(it.q*10000)/10000,custoUnit:it.custo,docKey:dk,doc:n.leitura.documento,fornecedor:n.leitura.fornecedor,por:etQuem()};
+  }
+  up['notas_confirmadas/'+dk]=null;up['fila/'+id+'/status']='lida';
+  await db.ref(ETB).update(up);showToast('Entrada desfeita');etCarregar();
+}
+async function etZerar(){
+  if(!confirm('Zerar TODO o estoque teste (saldos, movimentos e notas confirmadas)? As fotos/leituras da fila são mantidas e voltam a "lida".'))return;
+  const up={saldo:null,movimentos:null,notas_confirmadas:null};
+  Object.keys(etS.fila).forEach(id=>{if(etS.fila[id].status==='confirmada')up['fila/'+id+'/status']='lida';});
+  await db.ref(ETB).update(up);showToast('Estoque teste zerado');etCarregar();
+}
+
 </script>
 </body>
 </html>
